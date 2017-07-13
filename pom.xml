@@ -7,8 +7,15 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>threadpoolutil</name>
 	<description>Java Thread Pool Utility</description>
-	<url>file:${project.basedir}</url>
+	<url>https://github.com/justincranford/threadpoolutil</url>
 	<packaging>jar</packaging>
+
+	<licenses>
+		<license>
+			<name></name>
+			<url></url>
+		</license>
+	</licenses>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -28,4 +35,18 @@
 		</dependency>
 	</dependencies>
 
+	<developers>
+		<developer>
+			<name>Justin Cranford</name>
+			<email>justincranford@hotmail.com</email>
+			<organization>Justin Cranford</organization>
+			<organizationUrl>https://github.com/justincranford</organizationUrl>
+		</developer>
+	</developers>
+
+	<scm>
+		<connection>https://github.com/justincranford/threadpoolutil.git</connection>
+		<developerConnection>https://github.com/justincranford/threadpoolutil.git</developerConnection>
+		<url>https://github.com/justincranford/threadpoolutil</url>
+	</scm>
 </project>
