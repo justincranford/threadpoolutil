@@ -346,6 +346,26 @@ public class TestThreadPoolUtil {
 		}
 	}
 
+	@Test
+	public void testAssertNonNullObjectWithNonNullObject() {
+		ThreadPoolUtil.assertNonNullObject(new Object(), "");
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testAssertNonNullObjectWithNullObject() {
+		ThreadPoolUtil.assertNonNullObject(null, "");
+	}
+
+	@Test
+	public void testAssertSameLengthWithSameLengthObjects() {
+		ThreadPoolUtil.assertSameLength(new Object[]{"1","2","3"}, new Object[]{"4","5","6"});
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testAssertSameLengthWithDifferentLengthObjects() {
+		ThreadPoolUtil.assertSameLength(new Object[]{"1","2"}, new Object[]{"3","4","5","6"});
+	}
+
 	private static class TestHelperClass {
 		private static	Integer classValue		= Integer.valueOf(0);
 		private			Integer instanceValue	= Integer.valueOf(0);

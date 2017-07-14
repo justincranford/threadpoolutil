@@ -17,11 +17,11 @@ public final class ThreadPoolUtil {
 
 	public static final ThreadPoolExecutor THREAD_POOL = (ThreadPoolExecutor) Executors.newFixedThreadPool(ThreadPoolUtil.SYS_AVAILABLE_CPUS, DaemonThreadFactoryUtil.DAEMON_THREAD_FACTORY);
 
-	public static final String UNEXPECTED_EXCEPTION = "Unexpected exception";
-	public static final String METHOD_IS_MANDATORY = "Method is mandatory";
-	public static final String ARRAY_AND_ELEMENTS_OF_INSTANCES_ARRAY_ARE_MANDATORY = "Array and elements of instances array are mandatory";
-	public static final String ARRAY_OF_PARAMETERS_IS_MANDATORY_ELEMENTS_ARE_NOT = "Array of parameters is mandatory, elements are not";
-	public static final String ARRAY_AND_ELEMENTS_OF_PARAMETERS_DOUBLE_ARRAY_ARE_MANDATORY_LEAF_ELEMENTS_ARE_NOT = "Array and elements of parameters double array are mandatory, leaf elements are not";
+	private static final String UNEXPECTED_EXCEPTION = "Unexpected exception";
+	private static final String METHOD_IS_MANDATORY = "Method is mandatory";
+	private static final String ARRAY_AND_ELEMENTS_OF_INSTANCES_ARRAY_ARE_MANDATORY = "Array and elements of instances array are mandatory";
+	private static final String ARRAY_OF_PARAMETERS_IS_MANDATORY_ELEMENTS_ARE_NOT = "Array of parameters is mandatory, elements are not";
+	private static final String ARRAY_AND_ELEMENTS_OF_PARAMETERS_DOUBLE_ARRAY_ARE_MANDATORY_LEAF_ELEMENTS_ARE_NOT = "Array and elements of parameters double array are mandatory, leaf elements are not";
 
 	private ThreadPoolUtil() {
 		// prevent class instantiation by making constructor private
@@ -137,26 +137,26 @@ public final class ThreadPoolUtil {
 		}
 	}
 
-	private static void assertNonNullObject(final Object object, final String message) throws IllegalArgumentException {
+	/*protected*/ static void assertNonNullObject(final Object object, final String message) throws IllegalArgumentException {
 		if (null == object) {
 			throw new IllegalArgumentException(message);
 		}
 	}
 
-	private static void assertNonNullArrayAndElements(final Object[] object, final String message) throws IllegalArgumentException {
+	/*protected*/ static void assertNonNullArrayAndElements(final Object[] object, final String message) throws IllegalArgumentException {
 		ThreadPoolUtil.assertNonNullObject(object, message);
 		for (final Object element : object) {
 			ThreadPoolUtil.assertNonNullObject(element, message);
 		}
 	}
 
-	private static void assertGreaterThan(final long value1, final long value2) throws IllegalArgumentException {
+	/*protected*/ static void assertGreaterThan(final long value1, final long value2) throws IllegalArgumentException {
 		if (value1 <= value2) {
 			throw new IllegalArgumentException("Value " + value1 + " must be greater than " + value2 + ".");
 		}
 	}
 
-	private static void assertSameLength(final Object[] array1, final Object[] array2) throws IllegalArgumentException {
+	/*protected*/ static void assertSameLength(final Object[] array1, final Object[] array2) throws IllegalArgumentException {
 		ThreadPoolUtil.assertNonNullObject(array1, "Array 1 is mandatory");
 		ThreadPoolUtil.assertNonNullObject(array2, "Array 2 is mandatory");
 		if (array1.length != array2.length) {
