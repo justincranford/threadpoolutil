@@ -1,12 +1,14 @@
 package com.github.justincranford.threadpoolutil;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,8 +38,8 @@ public class TestThreadPoolUtil {
 			classSetter		= TestHelperClass.class.getMethod("setClassValue", Integer.class);
 			instancegetter	= TestHelperClass.class.getMethod("getInstanceValue");
 			instanceSetter	= TestHelperClass.class.getMethod("setInstanceValue", Integer.class);
-		} catch (NoSuchMethodException e) {
-			LOG.log(Level.SEVERE, "Initialization error", e);
+		} catch (Exception e) {
+			// do nothing
 		}
 		CLASS_SLEEP		= classSleep;
 		CLASS_GETTER	= classGetter;
@@ -57,62 +59,113 @@ public class TestThreadPoolUtil {
 	private static final Integer EXPECTED_NEW_24		= Integer.valueOf(24);
 	private static final Integer EXPECTED_NEW_25		= Integer.valueOf(25);
 
+	private static ThreadPoolUtil THREAD_POOL_UTIL;
+
 	@BeforeClass
-	public static void beforeClass() {
-		LOG.log(Level.FINE, "beforeClass()");
+	public static void beforeClass() throws Exception {
+		LOG.log(Level.INFO, "beforeClass()");
 		Assert.assertNotNull("Method TestClassWithTestMethods.getClassValue() not found",			CLASS_SLEEP);
 		Assert.assertNotNull("Method TestClassWithTestMethods.getClassValue() not found",			CLASS_GETTER);
 		Assert.assertNotNull("Method TestClassWithTestMethods.setClassValue(String) not found",		CLASS_SETTER);
 		Assert.assertNotNull("Method TestClassWithTestMethods.getInstanceValue() not found",		INSTANCE_GETTER);
 		Assert.assertNotNull("Method TestClassWithTestMethods.setInstanceValue(String) not found",	INSTANCE_SETTER);
+		TestThreadPoolUtil.THREAD_POOL_UTIL = new ThreadPoolUtil();
 	}
 
 	@AfterClass
 	public static void afterClass() throws Exception {
-		LOG.log(Level.FINE, "afterClass()");
+		LOG.log(Level.INFO, "afterClass()");
+		TestThreadPoolUtil.THREAD_POOL_UTIL.getExecutorService().shutdown();
+		TestThreadPoolUtil.THREAD_POOL_UTIL = null;
 	}
 
 	@Before
 	public void before() throws Exception {
-		LOG.log(Level.FINE, "beforeTest()");
+		LOG.log(Level.INFO, "beforeTest()");
 		TestHelperClass.setClassValue(Integer.valueOf(0));	// clear out static value
 	}
 
 	@Test
-	public void testPrivateConstructor() throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		final Constructor<?> constructor = ThreadPoolUtil.class.getDeclaredConstructor();	// throws exception if zero-parameter constructor is not found
-		if (!Modifier.isPrivate(constructor.getModifiers())) {
-			throw new IllegalArgumentException("Constructor must be private.");
-		}
-		constructor.setAccessible(true);
-		constructor.newInstance();	// ASSUMPTION: Never returns null, but could throw exception. We need to execute it to rule out an exception, and for code coverage reporting.
+	public void testPublicConstructor() throws Exception {
+		ValidationUtil.assertPublicConstructorNoParameters(ThreadPoolUtil.class, true);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testConstructorValidateBadNumThreads() throws Exception {
+		final ThreadPoolUtil threadPoolUtil = new ThreadPoolUtil(-1);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testConstructorValidateBadNumThreads2() throws Exception {
+		final ThreadPoolUtil threadPoolUtil = new ThreadPoolUtil(true, -1);
+	}
+
+	@Test
+	public void testConstructorValidateGoodNumThreads2() throws Exception {
+		final ThreadPoolUtil threadPoolUtil = new ThreadPoolUtil(true, 1);
+		threadPoolUtil.getExecutorService().shutdown();
+	}
+
+	@Test
+	public void testConstructorValidateNonDaemon() throws Exception {
+		final ThreadPoolUtil threadPoolUtil = new ThreadPoolUtil(false);
+		threadPoolUtil.getExecutorService().shutdown();
+	}
+
+	@Test
+	public void testConstructorValidateNonDaemon2() throws Exception {
+		final ThreadPoolUtil threadPoolUtil = new ThreadPoolUtil(false, 1);
+		threadPoolUtil.getExecutorService().shutdown();
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testConstructorValidateNullExecutorService() throws Exception {
+		final ThreadPoolUtil threadPoolUtil = new ThreadPoolUtil(null);
+	}
+
+	@Test
+	public void testConstructorValidateExecutorService() throws Exception {
+		final ExecutorService newFixedThreadPool = Executors.newFixedThreadPool(1);
+		final ThreadPoolUtil threadPoolUtil = new ThreadPoolUtil(newFixedThreadPool);
+		newFixedThreadPool.shutdown();
 	}
 
 	@Test(expected=NullPointerException.class)
 	public void testInvokeAllNullList() throws Exception {
 		ThreadPoolUtil.LOG.setLevel(Level.OFF);
-		GenericTask.LOG.setLevel(Level.OFF);
 		try {
-			ThreadPoolUtil.invokeAll(null);
+			TestThreadPoolUtil.THREAD_POOL_UTIL.invokeAll(null);
 		} finally {
-			GenericTask.LOG.setLevel(Level.INFO);
+			ThreadPoolUtil.LOG.setLevel(Level.INFO);
+		}
+	}
+
+	@Test(expected=NullPointerException.class)
+	public void testStaticInvokeAllNullList() throws Exception {
+		ThreadPoolUtil.LOG.setLevel(Level.OFF);
+		try {
+			ThreadPoolUtil.invokeAll(TestThreadPoolUtil.THREAD_POOL_UTIL.getExecutorService(), null);
+		} finally {
 			ThreadPoolUtil.LOG.setLevel(Level.INFO);
 		}
 	}
 
 	@Test
 	public void testInvokeAllEmptyList() throws Exception {
-		ThreadPoolUtil.invokeAll(new ArrayList<Object>(0));
+		TestThreadPoolUtil.THREAD_POOL_UTIL.invokeAll(new ArrayList<Object>(0));
+	}
+
+	@Test
+	public void testStaticInvokeAllEmptyList() throws Exception {
+		ThreadPoolUtil.invokeAll(TestThreadPoolUtil.THREAD_POOL_UTIL.getExecutorService(), new ArrayList<Object>(0));
 	}
 
 	@Test(expected=NullPointerException.class)
 	public void testGetResultsNullList() throws Exception {
 		ThreadPoolUtil.LOG.setLevel(Level.OFF);
-		GenericTask.LOG.setLevel(Level.OFF);
 		try {
 			ThreadPoolUtil.getResults(null);
 		} finally {
-			GenericTask.LOG.setLevel(Level.INFO);
 			ThreadPoolUtil.LOG.setLevel(Level.INFO);
 		}
 	}
@@ -122,14 +175,12 @@ public class TestThreadPoolUtil {
 		ThreadPoolUtil.getResults(new ArrayList<Future<Object>>(0));
 	}
 
-	@Test(expected=NullPointerException.class)
+	@Test(expected=Exception.class)
 	public void testGenericTaskNullMethod() throws Exception {
 		ThreadPoolUtil.LOG.setLevel(Level.OFF);
-		GenericTask.LOG.setLevel(Level.OFF);
 		try {
-			new GenericTask(null, null, null).call();
+			new ThreadPoolUtil.InvokeViaReflectionTask(null, null, null).call();
 		} finally {
-			GenericTask.LOG.setLevel(Level.INFO);
 			ThreadPoolUtil.LOG.setLevel(Level.INFO);
 		}
 	}
@@ -137,18 +188,16 @@ public class TestThreadPoolUtil {
 	@Test(expected=Exception.class)
 	public void testWaitForDoneBadSleepGranularity() throws Exception {
 		ThreadPoolUtil.LOG.setLevel(Level.OFF);
-		GenericTask.LOG.setLevel(Level.OFF);
 		try {
-			ThreadPoolUtil.waitForDone(ThreadPoolUtil.executeOnClassAsynchronous(CLASS_GETTER), 0L);
+			ThreadPoolUtil.waitForDone(TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnClassAsynchronous(CLASS_GETTER), 0L);
 		} finally {
-			GenericTask.LOG.setLevel(Level.INFO);
 			ThreadPoolUtil.LOG.setLevel(Level.INFO);
 		}
 	}
 
 	@Test
 	public void testWaitForDone() throws Exception {
-		ThreadPoolUtil.waitForDone(ThreadPoolUtil.executeOnClassAsynchronous(CLASS_SLEEP, new Object[]{Long.valueOf(10L)}), 1L);
+		ThreadPoolUtil.waitForDone(TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnClassAsynchronous(CLASS_SLEEP, new Object[]{Long.valueOf(10L)}), 1L);
 	}
 
 	@Test
@@ -160,27 +209,27 @@ public class TestThreadPoolUtil {
 		}
 
 		{	// Invoke asynchronous static method indirectly via reflection
-			final Future<Object> future2 = ThreadPoolUtil.executeOnClassAsynchronous(CLASS_SETTER, new Object[]{EXPECTED_NEW_21});
+			final Future<Object> future2 = TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnClassAsynchronous(CLASS_SETTER, new Object[]{EXPECTED_NEW_21});
 			final Object returnedValue2 = future2.get();	// Wait for asynchronous operation to finish
 			final Integer actualNewClassValue2 = TestHelperClass.getClassValue();
 			Assert.assertEquals("Indirect class set mismatch", EXPECTED_NEW_21, actualNewClassValue2);
 		}
 
 		{	// Invoke asynchronous static method indirectly via reflection
-			final Future<Object> future3 = ThreadPoolUtil.executeOnClassAsynchronous(CLASS_GETTER);
+			final Future<Object> future3 = TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnClassAsynchronous(CLASS_GETTER);
 			final Object returnedValue3 = future3.get();	// Wait for asynchronous operation to finish
 			final Integer actualNewClassValue3 = (Integer) returnedValue3;
 			Assert.assertEquals("Indirect class get mismatch", EXPECTED_NEW_21, actualNewClassValue3);
 		}
 
 		{	// Invoke synchronous static method indirectly via reflection
-			final Object returnedValue4 = ThreadPoolUtil.executeOnClassSynchronous(CLASS_SETTER, new Object[]{EXPECTED_NEW_22});
+			final Object returnedValue4 = TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnClassSynchronous(CLASS_SETTER, new Object[]{EXPECTED_NEW_22});
 			final Integer actualNewClassValue4 = TestHelperClass.getClassValue();
 			Assert.assertEquals("Indirect class set mismatch", EXPECTED_NEW_22, actualNewClassValue4);
 		}
 
 		{	// Invoke synchronous static method indirectly via reflection
-			final Integer actualNewClassValue5 = (Integer) ThreadPoolUtil.executeOnClassSynchronous(CLASS_GETTER);
+			final Integer actualNewClassValue5 = (Integer) TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnClassSynchronous(CLASS_GETTER);
 			Assert.assertEquals("Indirect class get mismatch", EXPECTED_NEW_22, actualNewClassValue5);
 		}
 	}
@@ -196,27 +245,27 @@ public class TestThreadPoolUtil {
 		}
 
 		{	// Invoke asynchronous instance method indirectly via reflection
-			final Future<Object> future2 = ThreadPoolUtil.executeOnInstanceAsynchronous(INSTANCE_SETTER, instance, new Object[]{EXPECTED_NEW_21});
+			final Future<Object> future2 = TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnInstanceAsynchronous(INSTANCE_SETTER, instance, new Object[]{EXPECTED_NEW_21});
 			final Object returnedValue2 = future2.get();	// Wait for asynchronous operation to finish
 			final Integer actualNewInstanceValue2 = instance.getInstanceValue();
 			Assert.assertEquals("Indirect instance set mismatch", EXPECTED_NEW_21, actualNewInstanceValue2);
 		}
 
 		{	// Invoke asynchronous instance method indirectly via reflection
-			final Future<Object> future3 = ThreadPoolUtil.executeOnInstanceAsynchronous(INSTANCE_GETTER, instance);
+			final Future<Object> future3 = TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnInstanceAsynchronous(INSTANCE_GETTER, instance);
 			final Object returnedValue3 = future3.get();	// Wait for asynchronous operation to finish
 			final Integer actualNewInstanceValue3 = (Integer) returnedValue3;
 			Assert.assertEquals("Indirect instance get mismatch", EXPECTED_NEW_21, actualNewInstanceValue3);
 		}
 
 		{	// Invoke synchronous instance method indirectly via reflection
-			final Object returnedValue4 = ThreadPoolUtil.executeOnInstanceSynchronous(INSTANCE_SETTER, instance, new Object[]{EXPECTED_NEW_22});
+			final Object returnedValue4 = TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnInstanceSynchronous(INSTANCE_SETTER, instance, new Object[]{EXPECTED_NEW_22});
 			final Integer actualNewInstanceValue4 = instance.getInstanceValue();
 			Assert.assertEquals("Indirect instance set mismatch", EXPECTED_NEW_22, actualNewInstanceValue4);
 		}
 
 		{	// Invoke synchronous instance method indirectly via reflection
-			final Object returnedValue5 = ThreadPoolUtil.executeOnInstanceSynchronous(INSTANCE_GETTER, instance);
+			final Object returnedValue5 = TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnInstanceSynchronous(INSTANCE_GETTER, instance);
 			final Integer actualNewInstanceValue5 = (Integer) returnedValue5;
 			Assert.assertEquals("Indirect instance get mismatch", EXPECTED_NEW_22, actualNewInstanceValue5);
 		}
@@ -235,7 +284,7 @@ public class TestThreadPoolUtil {
 		}
 
 		{	// Invoke asynchronous instance method indirectly via reflection
-			final List<Future<Object>> futures = ThreadPoolUtil.executeOnInstancesAsynchronous(INSTANCE_SETTER, instances, new Object[]{EXPECTED_NEW_21});
+			final List<Future<Object>> futures = TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnInstancesAsynchronous(INSTANCE_SETTER, instances, new Object[]{EXPECTED_NEW_21});
 			for (final Future<Object> future: futures) {
 				future.get();	// Wait for asynchronous operation to finish
 			}
@@ -247,7 +296,7 @@ public class TestThreadPoolUtil {
 
 		{	// Invoke asynchronous instance method indirectly via reflection
 			for (final TestHelperClass instance : instances) {
-				final Future<Object> future3 = ThreadPoolUtil.executeOnInstanceAsynchronous(INSTANCE_GETTER, instance);
+				final Future<Object> future3 = TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnInstanceAsynchronous(INSTANCE_GETTER, instance);
 				final Object returnedValue3 = future3.get();	// Wait for asynchronous operation to finish
 				final Integer actualNewInstanceValue3 = (Integer) returnedValue3;
 				Assert.assertEquals("Indirect instance get mismatch", EXPECTED_NEW_21, actualNewInstanceValue3);
@@ -255,7 +304,7 @@ public class TestThreadPoolUtil {
 		}
 
 		{	// Invoke synchronous instance method indirectly via reflection
-			final List<Object> results = ThreadPoolUtil.executeOnInstancesSynchronous(INSTANCE_SETTER, instances, new Object[]{EXPECTED_NEW_22});
+			final List<Object> results = TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnInstancesSynchronous(INSTANCE_SETTER, instances, new Object[]{EXPECTED_NEW_22});
 			for (final TestHelperClass instance : instances) {
 				final Integer actualNewInstanceValue3 = instance.getInstanceValue();
 				Assert.assertEquals("Indirect instances set mismatch", EXPECTED_NEW_22, actualNewInstanceValue3);
@@ -263,10 +312,10 @@ public class TestThreadPoolUtil {
 		}
 
 		{	// Invoke synchronous instance method indirectly via reflection
-			final List<Object> results = ThreadPoolUtil.executeOnInstancesSynchronous(INSTANCE_GETTER, instances);
+			final List<Object> results = TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnInstancesSynchronous(INSTANCE_GETTER, instances);
 			for (int numInstances=instances.length, i=0; i<numInstances; i++) {
 				final TestHelperClass instance = instances[i];
-				final Object returnedValue3 = ThreadPoolUtil.executeOnInstanceSynchronous(INSTANCE_GETTER, instance);
+				final Object returnedValue3 = TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnInstanceSynchronous(INSTANCE_GETTER, instance);
 				final Integer actualNewInstanceValue3 = (Integer) returnedValue3;
 				final Integer actualResultValue3 = (Integer) results.get(i);
 				Assert.assertEquals("Indirect instance get mismatch", EXPECTED_NEW_22, actualNewInstanceValue3);
@@ -298,7 +347,7 @@ public class TestThreadPoolUtil {
 		}
 
 		{	// Invoke asynchronous instance method indirectly via reflection
-			final List<Future<Object>> futures = ThreadPoolUtil.executeOnInstancesAsynchronous(INSTANCE_SETTER, instances, perInstanceParameters1);
+			final List<Future<Object>> futures = TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnInstancesAsynchronous(INSTANCE_SETTER, instances, perInstanceParameters1);
 			for (final Future<Object> future: futures) {
 				future.get();	// Wait for asynchronous operation to finish
 			}
@@ -311,7 +360,7 @@ public class TestThreadPoolUtil {
 		}
 
 		{	// Invoke asynchronous instance method indirectly via reflection
-			final List<Future<Object>> futures = ThreadPoolUtil.executeOnInstancesAsynchronous(INSTANCE_GETTER, instances);
+			final List<Future<Object>> futures = TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnInstancesAsynchronous(INSTANCE_GETTER, instances);
 			for (int numInstances=instances.length, i=0; i<numInstances; i++) {
 				final TestHelperClass instance = instances[i];
 				final Integer expectedValue = (Integer) perInstanceParameters1[i][0];
@@ -323,7 +372,7 @@ public class TestThreadPoolUtil {
 		}
 
 		{	// Invoke synchronous instance method indirectly via reflection
-			final List<Object> returnValues = ThreadPoolUtil.executeOnInstancesSynchronous(INSTANCE_SETTER, instances, perInstanceParameters1);
+			final List<Object> returnValues = TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnInstancesSynchronous(INSTANCE_SETTER, instances, perInstanceParameters1);
 			for (int numInstances=instances.length, i=0; i<numInstances; i++) {
 				final TestHelperClass instance = instances[i];
 				final Integer expectedValue = (Integer) perInstanceParameters1[i][0];
@@ -333,11 +382,11 @@ public class TestThreadPoolUtil {
 		}
 
 		{	// Invoke synchronous instance method indirectly via reflection
-			final List<Object> results = ThreadPoolUtil.executeOnInstancesSynchronous(INSTANCE_GETTER, instances);
+			final List<Object> results = TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnInstancesSynchronous(INSTANCE_GETTER, instances);
 			for (int numInstances=instances.length, i=0; i<numInstances; i++) {
 				final TestHelperClass instance = instances[i];
 				final Integer expectedValue = (Integer) perInstanceParameters1[i][0];
-				final Object returnedValue3 = ThreadPoolUtil.executeOnInstanceSynchronous(INSTANCE_GETTER, instance);
+				final Object returnedValue3 = TestThreadPoolUtil.THREAD_POOL_UTIL.executeOnInstanceSynchronous(INSTANCE_GETTER, instance);
 				final Integer actualNewInstanceValue3 = (Integer) returnedValue3;
 				final Integer actualtResultValue3 = (Integer) results.get(i);
 				Assert.assertEquals("Indirect instances get mismatch", expectedValue, actualNewInstanceValue3);
