@@ -2,17 +2,22 @@ package com.github.justincranford.threadpoolutil;
 
 import java.util.concurrent.ThreadFactory;
 
-public final class DaemonThreadFactoryUtil implements ThreadFactory {	// NOPMD
-	public static final DaemonThreadFactoryUtil DAEMON_THREAD_FACTORY = new DaemonThreadFactoryUtil();	// NOPMD
+@SuppressWarnings("hiding")
+public final class DaemonThreadFactoryUtil implements ThreadFactory {
+	public static final DaemonThreadFactoryUtil     DAEMON_THREAD_FACTORY = new DaemonThreadFactoryUtil(true);
+	public static final DaemonThreadFactoryUtil NON_DAEMON_THREAD_FACTORY = new DaemonThreadFactoryUtil(false);
 
-	private DaemonThreadFactoryUtil() {
+	private boolean isDaemonThreadFactory;
+
+	private DaemonThreadFactoryUtil(final boolean isDaemonThreadFactory) {
 		// prevent class instantiation by making constructor private
+		this.isDaemonThreadFactory = isDaemonThreadFactory;
 	}
 
 	@Override
-	public Thread newThread(final Runnable runnable) {	// NOPMD
-		final Thread thread = new Thread(runnable);	// NOPMD
-		thread.setDaemon(true);
+	public Thread newThread(final Runnable runnable) {
+		final Thread thread = new Thread(runnable);
+		thread.setDaemon(this.isDaemonThreadFactory);
 		thread.setPriority(Thread.MIN_PRIORITY);
 		return thread;
 	}
