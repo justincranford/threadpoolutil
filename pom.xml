@@ -4,11 +4,17 @@
 
 	<groupId>com.github.justincranford</groupId>
 	<artifactId>threadpoolutil</artifactId>
-	<version>0.0.2</version>
+	<version>0.0.3</version>
 	<name>threadpoolutil</name>
 	<description>Java Thread Pool Utility</description>
 	<url>https://github.com/justincranford/threadpoolutil</url>
 	<packaging>jar</packaging>
+
+	<inceptionYear>2017</inceptionYear>
+	<organization>
+		<name>Justin Cranford</name>
+		<url>https://github.com/justincranford/threadpoolutil</url>
+	</organization>
 
 	<licenses>
 		<license>
@@ -23,7 +29,9 @@
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<maven.test.skip>false</maven.test.skip>
+		<maven.verify.skip>true</maven.verify.skip>
 		<maven.install.skip>true</maven.install.skip>
+		<maven.deploy.skip>false</maven.deploy.skip>
 	</properties>
 
 	<dependencies>
@@ -92,9 +100,9 @@
 	</developers>
 
 	<scm>
-		<connection>https://github.com/justincranford/threadpoolutil.git</connection>
-		<developerConnection>https://github.com/justincranford/threadpoolutil.git</developerConnection>
-		<url>https://github.com/justincranford/threadpoolutil</url>
+		<connection>scm:https://github.com/justincranford/threadpoolutil.git</connection>
+		<developerConnection>scm:https://github.com/justincranford/threadpoolutil.git</developerConnection>
+		<url>scm:https://github.com/justincranford/threadpoolutil</url>
 	</scm>
 
 	<distributionManagement>
